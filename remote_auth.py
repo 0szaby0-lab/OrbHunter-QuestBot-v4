@@ -13,9 +13,14 @@ from typing import Callable, Optional, Dict, Any
 
 import aiohttp
 import qrcode
-from Cryptodome.PublicKey import RSA
-from Cryptodome.Cipher import PKCS1_OAEP
-from Cryptodome.Hash import SHA256
+try:
+    from Cryptodome.PublicKey import RSA
+    from Cryptodome.Cipher import PKCS1_OAEP
+    from Cryptodome.Hash import SHA256
+except ImportError:
+    from Crypto.PublicKey import RSA
+    from Crypto.Cipher import PKCS1_OAEP
+    from Crypto.Hash import SHA256
 
 from logger import log
 
