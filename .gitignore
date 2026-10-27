@@ -1,0 +1,29 @@
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+
+# ===========================
+# Környezeti változók & Titkok
+# ===========================
+# .env fájl SOHA nem kerülhet fel a gitre!
+.env
+token.txt
+
+# ===========================
+# Ideiglenes fájlok & képek
+# ===========================
+thumbnail.png
+logo.png
+
+# ===========================
+# Futásidejű állapotadatok (nem commitolandó)
+# ===========================
+user_limits.json
+channel.json
+session_messages.json

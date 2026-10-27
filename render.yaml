@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: discord-quest-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -u txa.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: AUTO_ACCEPT
+        value: "True"
+      - key: LOG_PROGRESS
+        value: "True"
+      - key: DEBUG
+        value: "True"
