@@ -75,7 +75,7 @@ def resolve_guild_channel_id(guild):
     cid = (getattr(config, "SERVER_CHANNELS", None) or {}).get(str(guild.id))
     if cid:
         return int(cid)
-    if config.CHANNEL_ID and guild.get_channel(int(config.CHANNEL_ID)):
+    if config.CHANNEL_ID:
         return int(config.CHANNEL_ID)
     return None
 
@@ -83,8 +83,11 @@ def resolve_guild_channel_id(guild):
 def is_panel_channel(interaction: discord.Interaction) -> bool:
     """Az indítás gomb csak a szerver kijelölt csatornájában működik."""
     if not interaction.guild:
-        return False
-    return resolve_guild_channel_id(interaction.guild) == interaction.channel_id
+        return True
+    configured_id = resolve_guild_channel_id(interaction.guild)
+    if not configured_id:
+        return True
+    return configured_id == interaction.channel_id
 
 
 def panel_mention_for_user(user_id: int, fallback: str = "fő vezérlőpult") -> str:
@@ -345,16 +348,15 @@ class QRLoginView(discord.ui.View):
 
 
 async def handle_qr_start(interaction: discord.Interaction):
+    if not interaction.response.is_done():
+        await interaction.response.defer(ephemeral=True)
     user_id = interaction.user.id
 
     from limits_manager import is_user_limited
     if is_user_limited(user_id):
         from payment_views import get_limit_embed_and_view, register_invoice
         embed, view = get_limit_embed_and_view(user_id)
-        if not interaction.response.is_done():
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-        else:
-            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
         register_invoice(interaction, view)
         return
 
@@ -363,10 +365,7 @@ async def handle_qr_start(interaction: discord.Interaction):
             "🔄 **Ehhez a fiókhoz már fut egy aktív munkamenet!**\n"
             "Újraindításhoz először állítsd le a folyamatot a `/stop` paranccsal vagy a piros gombbal a privát üzeneteidben (DM)."
         )
-        if not interaction.response.is_done():
-            await interaction.response.send_message(msg, ephemeral=True)
-        else:
-            await interaction.followup.send(msg, ephemeral=True)
+        await interaction.followup.send(msg, ephemeral=True)
         return
 
     if user_id in ACTIVE_QR_HANDLERS:
@@ -1276,15 +1275,17 @@ class ControlView(discord.ui.View):
 
     @discord.ui.button(label="Indítás", style=discord.ButtonStyle.success, emoji="🚀", custom_id="btn_start")
     async def start_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.response.is_done():
+            await interaction.response.defer(ephemeral=True)
         if not is_panel_channel(interaction):
-            await interaction.response.send_message(f"{config.EMOJI_FAIL} Ez a gomb ebben a csatornában nem használható.", ephemeral=True)
+            await interaction.followup.send(f"{config.EMOJI_FAIL} Ez a gomb ebben a csatornában nem használható.", ephemeral=True)
             return
 
         from limits_manager import is_user_limited
         if is_user_limited(interaction.user.id):
             from payment_views import get_limit_embed_and_view, register_invoice
             embed, view = get_limit_embed_and_view(interaction.user.id)
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
             register_invoice(interaction, view)
             return
         
@@ -2427,12 +2428,7 @@ async def menu_command(interaction: discord.Interaction):
 
 
 def run_bot():
-    if os.environ.get("TXA_LAUNCHED") != "1":
-        log("=" * 65, "error")
-        log("❌ NEM INDÍTHATOD EL KÖZVETLENÜL A BOT.PY FÁJLT!", "error")
-        log("👉 Kérjük, indítsd a botot a rendes indítófájllal: python txa.py", "warn")
-        log("=" * 65, "error")
-        sys.exit(1)
+    os.environ["TXA_LAUNCHED"] = "1"
 
     missing = []
     
@@ -2468,8 +2464,5 @@ def run_bot():
         log("Ctrl+C jelzés fogadva. A rendszer leáll...", "warn")
 
 if __name__ == "__main__":
-    log("=" * 65, "error")
-    log("❌ NEM INDÍTHATOD EL KÖZVETLENÜL A BOT.PY FÁJLT!", "error")
-    log("👉 Kérjük, indítsd a botot a rendes indítófájllal: python txa.py", "warn")
-    log("=" * 65, "error")
-    sys.exit(1)
+    os.environ["TXA_LAUNCHED"] = "1"
+    run_bot()
